@@ -1,3 +1,4 @@
+import os
 import csv
 import pandas as pd
 import numpy as np
@@ -7,50 +8,45 @@ from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
 
-# def encrypt_csv(filename):
-#     # generate a new RSA key pair
-#     key = rsa.generate_private_key(
-#         public_exponent=65537,
-#         key_size=2048
-#     )
+def generate_key_pair(public_key_file='public_key.pem', private_key_file='private_key.pem'):
+    # check if the key files already exist
+    if os.path.exists(public_key_file) and os.path.exists(private_key_file):
+        print('Key pair already exists.')
+        return
 
-#     # create a cipher object for encryption
-#     public_key = key.public_key()
-
-#     # read the CSV file into a pandas dataframe
-#     df = pd.read_csv(filename)
-
-#     # encrypt the values in the dataframe
-#     encrypted_df = df.applymap(lambda x: public_key.encrypt(
-#         str(x).strip().encode(),
-#         padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None)
-#     ).hex())
-
-#     # write the encrypted dataframe to a new CSV file
-#     encrypted_df.to_csv('encrypted_' + filename, index=False)
-
-#     # serialize the private key to a PEM-encoded string
-#     private_key_pem = key.private_bytes(
-#         encoding=serialization.Encoding.PEM,
-#         format=serialization.PrivateFormat.PKCS8,
-#         encryption_algorithm=serialization.NoEncryption()
-#     )
-
-#     # write the private key to a file
-#     with open('private_key.pem', 'wb') as f:
-#         f.write(private_key_pem)
-
-#     print('Encryption successful.')
-
-def encrypt_csv(filename):
-    # read the private key from file and create a key object from it
-    with open('private_key.pem', 'rb') as f:
-        private_key_pem = f.read()
-    key = serialization.load_pem_private_key(
-        private_key_pem,
-        password=None,
+    # generate the private key
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
         backend=default_backend()
     )
+
+    # write the private key to file
+    with open(private_key_file, 'wb') as f:
+        f.write(private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        ))
+
+    # generate the public key from the private key
+    public_key = private_key.public_key()
+
+    # write the public key to file
+    with open(public_key_file, 'wb') as f:
+        f.write(public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        ))
+
+    print('Key pair generated successfully.')
+
+
+def encrypt_csv(filename, public_key_file='public_key.pem'):
+    # read the public key from file and create a key object from it
+    with open(public_key_file, 'rb') as f:
+        public_key_pem = f.read()
+    key = serialization.load_pem_public_key(public_key_pem, backend=default_backend())
 
     # read the original CSV file into a pandas dataframe
     original_df = pd.read_csv(filename)
@@ -59,7 +55,7 @@ def encrypt_csv(filename):
     original_df = original_df.applymap(lambda x: str(x) if str(x).isnumeric() else x)
 
     # encrypt the values in the dataframe
-    encrypted_df = original_df.applymap(lambda x: key.public_key().encrypt(
+    encrypted_df = original_df.applymap(lambda x: key.encrypt(
         x.encode(),
         padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None)
     ).hex())
@@ -107,6 +103,7 @@ def decrypt_csv(filename):
         print('Decrypted file does not match original file.')
 
 if __name__ == '__main__':
+    generate_key_pair()
     filename = "example.csv"
     encrypt_csv(filename)
     decrypt_csv('encrypted_' + filename)
