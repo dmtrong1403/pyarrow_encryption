@@ -1,43 +1,71 @@
 import csv
 import pandas as pd
+import numpy as np
 import hashlib
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
 
+# def encrypt_csv(filename):
+#     # generate a new RSA key pair
+#     key = rsa.generate_private_key(
+#         public_exponent=65537,
+#         key_size=2048
+#     )
+
+#     # create a cipher object for encryption
+#     public_key = key.public_key()
+
+#     # read the CSV file into a pandas dataframe
+#     df = pd.read_csv(filename)
+
+#     # encrypt the values in the dataframe
+#     encrypted_df = df.applymap(lambda x: public_key.encrypt(
+#         str(x).strip().encode(),
+#         padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None)
+#     ).hex())
+
+#     # write the encrypted dataframe to a new CSV file
+#     encrypted_df.to_csv('encrypted_' + filename, index=False)
+
+#     # serialize the private key to a PEM-encoded string
+#     private_key_pem = key.private_bytes(
+#         encoding=serialization.Encoding.PEM,
+#         format=serialization.PrivateFormat.PKCS8,
+#         encryption_algorithm=serialization.NoEncryption()
+#     )
+
+#     # write the private key to a file
+#     with open('private_key.pem', 'wb') as f:
+#         f.write(private_key_pem)
+
+#     print('Encryption successful.')
+
 def encrypt_csv(filename):
-    # generate a new RSA key pair
-    key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048
+    # read the private key from file and create a key object from it
+    with open('private_key.pem', 'rb') as f:
+        private_key_pem = f.read()
+    key = serialization.load_pem_private_key(
+        private_key_pem,
+        password=None,
+        backend=default_backend()
     )
 
-    # create a cipher object for encryption
-    public_key = key.public_key()
+    # read the original CSV file into a pandas dataframe
+    original_df = pd.read_csv(filename)
 
-    # read the CSV file into a pandas dataframe
-    df = pd.read_csv(filename)
+    # convert numeric values to strings
+    original_df = original_df.applymap(lambda x: str(x) if str(x).isnumeric() else x)
 
     # encrypt the values in the dataframe
-    encrypted_df = df.applymap(lambda x: public_key.encrypt(
-        str(x).strip().encode(),
+    encrypted_df = original_df.applymap(lambda x: key.public_key().encrypt(
+        x.encode(),
         padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None)
     ).hex())
 
     # write the encrypted dataframe to a new CSV file
-    encrypted_df.to_csv('encrypted_' + filename, index=False)
-
-    # serialize the private key to a PEM-encoded string
-    private_key_pem = key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption()
-    )
-
-    # write the private key to a file
-    with open('private_key.pem', 'wb') as f:
-        f.write(private_key_pem)
+    encrypted_df.to_csv('encrypted_' + filename, index=False, quoting=csv.QUOTE_NONNUMERIC)
 
     print('Encryption successful.')
 
