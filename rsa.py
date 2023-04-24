@@ -102,8 +102,21 @@ def decrypt_csv(filename):
     else:
         print('Decrypted file does not match original file.')
 
+def replicate_rows(csv_file, n=1000, output_file='replicated.csv'):
+    # Read the CSV file into a pandas dataframe
+    df = pd.read_csv(csv_file)
+
+    # Replicate the rows
+    replicated_df = pd.concat([df]*n, ignore_index=True)
+
+    # Write the replicated rows to a new CSV file
+    replicated_df.to_csv(output_file, index=False)
+
+    print(f'Replicated {len(df)} rows {n} times to create {len(replicated_df)} rows in {output_file}.')
+
 if __name__ == '__main__':
-    generate_key_pair()
-    filename = "example.csv"
-    encrypt_csv(filename)
-    decrypt_csv('encrypted_' + filename)
+    # generate_key_pair()
+    # filename = "example.csv"
+    # encrypt_csv(filename)
+    # decrypt_csv('encrypted_' + filename)
+    replicate_rows('example.csv', n=1000, output_file='replicated.csv')

@@ -1,5 +1,5 @@
 # pyarrow_encryption
-Example RSA encryption with pyarrow
+Example RSA & AES encryption with pyarrow
 
 # Prerequisite 
 Install python 3.8.0
