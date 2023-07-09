@@ -38,7 +38,7 @@ def main(input_encrypted_csv, output_csv, password):
     decrypted_data = decrypt_data(encrypted_csv_data, key, salt)
 
     # Deserialize the decrypted data into CSV rows
-    csv_rows = [row.split(',') for row in decrypted_data.decode().split('\n')]
+    csv_rows = [row.split('|') for row in decrypted_data.decode().split('\n')]
 
     # Write the decrypted data to the output file
     with open(output_csv, 'w', newline='') as f:
