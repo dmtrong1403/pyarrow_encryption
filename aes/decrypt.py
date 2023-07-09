@@ -42,7 +42,7 @@ def main(input_encrypted_csv, output_csv, password):
 
     # Write the decrypted data to the output file
     with open(output_csv, 'w', newline='') as f:
-        writer = csv.writer(f)
+        writer = csv.writer(f, quoting=csv.QUOTE_ALL)
         writer.writerows(csv_rows)
 
 if __name__ == "__main__":
